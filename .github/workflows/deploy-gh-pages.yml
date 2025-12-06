@@ -1,0 +1,41 @@
+name: Build and Deploy HTML5 to gh-pages
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install system deps (may need adjustments)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y haxe openjdk-11-jre-headless
+          # haxelib should be available with the haxe package. If not, install via other means.
+
+      - name: Install Haxe libs
+        run: |
+          haxelib install lime || true
+          haxelib install openfl || true
+          haxelib install flixel || true
+          haxelib install flixel-addons || true
+
+      - name: Build HTML5
+        run: |
+          if command -v lime >/dev/null 2>&1; then
+            lime build html5 -release
+          elif command -v openfl >/dev/null 2>&1; then
+            openfl build html5 -release
+          else
+            echo "No lime/openfl found, adjust CI to install them properly" && exit 1
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./export/release/html5/bin
